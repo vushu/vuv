@@ -9,7 +9,7 @@ file(GLOB_RECURSE SOURCE_LIST
     "${CMAKE_CURRENT_LIST_DIR}/src/*.c")
 
 file(GLOB_RECURSE HEADER_LIST
-    "${CMAKE_CURRENT_LIST_DIR}/src/*.h")
+    "${CMAKE_CURRENT_LIST_DIR}/include/*.h")
 
 set (source "${CMAKE_SOURCE_DIR}/resources")
 set (destination "${CMAKE_CURRENT_BINARY_DIR}/resources")

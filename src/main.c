@@ -1,13 +1,17 @@
 #include <SDL2/SDL.h>
-#include "./game/window.h"
+/*#include "./game/window.h"*/
 #include "SDL_timer.h"
+#include "vuv/application.h"
+#include "vuv/vuv.h"
 
 int main(int argc, char* args[]) {
 
-    vu_context ctx;
-    vu_init_app(&ctx,600, 300);
-    SDL_Delay(3000);
-    vu_destroy(&ctx);
+    vuv_application* vuv_app;
+    if (vuv_init_application("Vuv Game", 600, 300, vuv_app)){
+        SDL_Delay(3000);
+        vuv_destroy_application(vuv_app);
+    }
+
     return 0;
 
 
