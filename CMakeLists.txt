@@ -14,6 +14,8 @@ file(GLOB_RECURSE HEADER_LIST
 set (source "${CMAKE_SOURCE_DIR}/resources")
 set (destination "${CMAKE_CURRENT_BINARY_DIR}/resources")
 
+#GLAD
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/externals/glad)
 add_executable(${PROJECT_NAME} ${HEADER_LIST} ${SOURCE_LIST})
 
 message("SYSTEM IS:" "${CMAKE_SYSTEM_NAME}")
