@@ -13,6 +13,7 @@ file(GLOB_RECURSE HEADER_LIST
 
 set (source "${CMAKE_SOURCE_DIR}/resources")
 set (destination "${CMAKE_CURRENT_BINARY_DIR}/resources")
+set(GLAD_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/externals/glad/include/")
 
 #GLAD
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/externals/glad)
@@ -29,11 +30,12 @@ add_custom_command(
     COMMENT "symbolic link resources folder from ${source} => ${destination}")
 
 find_package(SDL2 REQUIRED)
-find_package(SDL2_image REQUIRED)
+#find_package(SDL2_image REQUIRED)
 
 target_include_directories(${PROJECT_NAME} PUBLIC
-    ${SDL2_INCLUDE_DIRS}
-    ${SDL2_IMAGE_INCLUDE_DIRS})
+    ${SDL2_INCLUDE_DIR}
+    #${SDL2_IMAGE_INCLUDE_DIRS}
+    )
 
 target_include_directories(${PROJECT_NAME} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -41,4 +43,4 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     PRIVATE src)
 
 
-target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARIES} ${SDL2_IMAGE_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARY} glad ${CMAKE_DL_LIBS})

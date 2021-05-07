@@ -7,18 +7,24 @@
 #include <stdlib.h>
 
 
-int vuv_init_application(char* title, int width, int height, vuv_application* vuv_app) {
-
-    if (vuv_setup_sdl() == EXIT_FAILURE) {
-        return VUV_OK;
+vuv_application* vuv_application_init(char* title, int width, int height) {
+    if (vuv_setup_sdl() == VUV_OK) {
+        vuv_application* app = malloc(sizeof(vuv_application));
+        if (vuv_window_create(title, width, height, app->context) == VUV_OK) {
+            return app;
+        }
     }
-    vuv_app = malloc(sizeof(vuv_application));
-    vuv_app->vuv_context = vuv_create_window(title, width, height);
-    return VUV_FAIL;
+
+    return NULL;
 }
 
-void vuv_destroy_application(vuv_application* vu_app) {
-    SDL_GL_DeleteContext(vu_app->vuv_context->glContext);
-    SDL_DestroyWindow(vu_app->vuv_context->window);
-    SDL_Quit();
+void vuv_destroy_application(vuv_application* vuv_app) {
+
+    if (vuv_app != NULL && vuv_app->context != NULL){
+        SDL_GL_DeleteContext(vuv_app->context->gl_context);
+        SDL_DestroyWindow(vuv_app->context->sdl_window);
+        free(vuv_app->context);
+        free(vuv_app);
+        SDL_Quit();
+    }
 }

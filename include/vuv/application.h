@@ -2,18 +2,18 @@
 #include <SDL2/SDL.h>
 
 typedef struct vuv_ctx {
-    SDL_Window* window;
-    SDL_Renderer* renderer;
-    SDL_GLContext* glContext;
+    SDL_Window* sdl_window;
+    //SDL_Renderer* renderer;
+    SDL_GLContext gl_context;
 
-}vuv_context;
+} vuv_context;
 
 typedef struct vuv_app {
-    vuv_context* vuv_context;
-}vuv_application;
+    vuv_context* context;
+} vuv_application;
 
-int vuv_init_application(char* title, int width, int height, vuv_application* vu_app);
+vuv_application* vuv_application_init(char* title, int width, int height);
 
-void vuv_destroy_application(vuv_application* vu_app);
+void vuv_destroy_application(vuv_application* vuv_app);
 
 

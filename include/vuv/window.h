@@ -1,4 +1,4 @@
 #pragma once
 #include "vuv/application.h"
 
-vuv_context* vuv_create_window(char* title, int width, int height);
+int vuv_window_create(char* title, int width, int height, struct vuv_ctx* vuv_ctx);
