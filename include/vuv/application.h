@@ -1,19 +1,12 @@
 #pragma once
-#include <SDL2/SDL.h>
+#include "datatypes.h"
 
-typedef struct vuv_ctx {
-    SDL_Window* sdl_window;
-    //SDL_Renderer* renderer;
-    SDL_GLContext gl_context;
+vuv_application* vuv_application_create(char* title, int width, int height);
 
-} vuv_context;
+int vuv_application_init(vuv_application* app);
 
-typedef struct vuv_app {
-    vuv_context* context;
-} vuv_application;
+void vuv_application_game_loop(vuv_application* app);
 
-vuv_application* vuv_application_init(char* title, int width, int height);
-
-void vuv_destroy_application(vuv_application* vuv_app);
+void vuv_application_destroy(vuv_application* vuv_app);
 
 

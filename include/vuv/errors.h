@@ -1,3 +1,11 @@
 #pragma once
-#define VUV_OK 0
-#define VUV_FAIL 1
+#define VUV_OK 1
+#define VUV_FAIL 0
+#define VUV_SDL_INIT_FAILED -5
+#define VUV_OPENGL_FAILED -6
+#define VUV_WINDOW_FAILED -7
+#define VUV_GLAD_FAILED -8
+#define VUV_RENDER_PROGRAM_FAILED -9
+#define VUV_RENDER_SHADER_FAILED -10
+#define VUV_RENDER_GPU_DATA_FAILED -11
+#define VUV_RENDER_READ_SHADER_FAILED -12

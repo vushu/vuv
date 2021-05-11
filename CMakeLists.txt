@@ -15,6 +15,8 @@ set (source "${CMAKE_SOURCE_DIR}/resources")
 set (destination "${CMAKE_CURRENT_BINARY_DIR}/resources")
 set(GLAD_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/externals/glad/include/")
 
+#cglm math library for opengl
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/externals/cglm/ EXCLUDE_FROM_ALL)
 #GLAD
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/externals/glad)
 add_executable(${PROJECT_NAME} ${HEADER_LIST} ${SOURCE_LIST})
@@ -43,4 +45,4 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     PRIVATE src)
 
 
-target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARY} glad ${CMAKE_DL_LIBS})
+target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARY} glad ${CMAKE_DL_LIBS} cglm_headers)
