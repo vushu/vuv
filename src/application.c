@@ -41,9 +41,10 @@ void vuv_application_destroy(vuv_application *vuv_app) {
         SDL_GL_DeleteContext(vuv_app->context->gl_context);
         SDL_DestroyWindow(vuv_app->context->sdl_window);
 
+        vuv_render_free(vuv_app->render);
+
         free(vuv_app->context);
         free(vuv_app->window);
-        vuv_render_free(vuv_app->render);
         free(vuv_app->input);
         free(vuv_app);
 
@@ -55,5 +56,11 @@ void vuv_application_game_loop(vuv_application *app) {
     SDL_Delay(VUV_FRAME_PER_SEC);
     vuv_input_listen(app);
     vuv_render_clear(app->render);
-//    vuv_render_draw(app);
+    int i;
+    for (i = 0; i < 10; i++) {
+        vuv_render_draw_quad(app->render);
+    }
+    vuv_render_end_batch(app->render);
+
+    SDL_GL_SwapWindow(app->context->sdl_window);
 }

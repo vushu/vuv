@@ -7,7 +7,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define MAX_VERTEX_COUNT 1000
+#define MAX_QUAD_COUNT 100
+#define MAX_INDEX_COUNT MAX_QUAD_COUNT * 6
+#define MAX_VERTEX_COUNT MAX_QUAD_COUNT * 4
 
 int checkGLError() {
     GLenum err;
@@ -18,11 +20,11 @@ int checkGLError() {
 }
 
 void begin_batch(vuv_render_data *render) {
-    render->current_pointer_of_vertex_buffer = render->vertex_buffer;
+    render->vertex_buffer_ptr = render->vertex_buffer;
 }
 
 void end_batch(vuv_render_data *render) {
-    GLsizeiptr size = (uint8_t *) render->current_pointer_of_vertex_buffer - (uint8_t) render->vertex_buffer;
+    GLsizeiptr size = (uint8_t *) render->vertex_buffer_ptr - (uint8_t *) render->vertex_buffer;
     glBindBuffer(GL_ARRAY_BUFFER, render->gl_VB);
     glBufferSubData(GL_ARRAY_BUFFER, 0, size, render->vertex_buffer);
 }
@@ -47,27 +49,146 @@ void create_gpu_data_float(int program_id, char *var_name, float value) {
     glUniform1f(glGetUniformLocation(program_id, var_name), value);
 }
 
-int read_shaders(vuv_render_data *render) {
+char *read_file(char *fn) {
+
     FILE *fp;
-    char buff[255];
+    char *content = NULL;
 
-    fp = fopen("/home/vushu/coding/c/vuv/resources/shaders/shader.vert", "r");
+    int count = 0;
 
-    if (fp == NULL) {
-        return VUV_RENDER_READ_SHADER_FAILED;
+    if (fn != NULL) {
+        fp = fopen(fn, "rt");
+
+        if (fp != NULL) {
+
+            fseek(fp, 0, SEEK_END);
+            count = ftell(fp);
+            rewind(fp);
+
+            if (count > 0) {
+                content = (char *) malloc(sizeof(char) * (count + 1));
+                count = fread(content, sizeof(char), count, fp);
+                content[count] = '\0';
+            }
+            fclose(fp);
+        }
     }
+    return content;
+}
 
-    fgets(render->vertex_shader_src, 255, fp);
-    fp = fopen("/home/vushu/coding/c/vuv/resources/shaders/shader.frag", "r");
-    fgets(render->fragment_shader_src, 255, fp);
-    fclose(fp);
+void set_render_vertex(vuv_render_data *render, vec2 position, vec2 texture_coord) {
+    // test no texture
+    render->vertex_buffer_ptr->position[0] = position[0];
+    render->vertex_buffer_ptr->position[1] = position[1];
+    render->vertex_buffer_ptr->position[2] = 0.0f;
+
+    render->vertex_buffer_ptr->color[0] = 1.0f;
+    render->vertex_buffer_ptr->color[1] = 0.0f;
+    render->vertex_buffer_ptr->color[2] = 0.0f;
+    render->vertex_buffer_ptr->color[3] = 1.0f;
+
+    render->vertex_buffer_ptr->texture_id = 0.0f;
+    render->vertex_buffer_ptr->type_id = 0.0f;
+
+    render->vertex_buffer_ptr->texture_coord[0] = texture_coord[0];
+    render->vertex_buffer_ptr->texture_coord[1] = texture_coord[1];
+    render->vertex_buffer_ptr++;
+
+}
+
+void set_render_vertices(vuv_render_data *render, vec2 position, vec2 size) {
+
+    //BR
+    vec2 bot_right;
+    bot_right[0] = position[0] + size[0];
+    bot_right[1] = position[1] + size[1];
+    vec2 bot_right_texture_coord;
+    bot_right_texture_coord[0] = 1.0f;
+    bot_right_texture_coord[1] = 1.0f;
+
+    //TR
+    vec2 top_right;
+    top_right[0] = position[0] + size[0];
+    top_right[1] = position[1];
+    vec2 top_right_texture_coord;
+    top_right_texture_coord[0] = 1.0f;
+    top_right_texture_coord[1] = 0.0f;
+
+
+    //TL
+    vec2 top_left;
+    top_left[0] = position[0];
+    top_left[1] = position[1];
+    vec2 top_left_texture_coord;
+    top_left_texture_coord[0] = 0.0f;
+    top_left_texture_coord[1] = 0.0f;
+
+
+    //BL
+    vec2 bot_left;
+    bot_left[0] = position[0];
+    bot_left[1] = position[1] + size[1];
+    vec2 bot_left_texture_coord;
+    bot_left_texture_coord[0] = 0.0f;
+    bot_left_texture_coord[1] = 1.0f;
+
+
+    set_render_vertex(render, bot_right, bot_right_texture_coord); //BR
+    set_render_vertex(render, top_right, top_right_texture_coord); //TR
+    set_render_vertex(render, top_left, top_left_texture_coord); //TL
+    set_render_vertex(render, bot_left, bot_left_texture_coord); //BL
+
+}
+
+void increment_number_of_vertices(vuv_render_data *render) {
+    render->render_indices_count += 6;
+}
+
+int read_shaders(vuv_render_data *render) {
+    render->vertex_shader_src = read_file("/home/vushu/coding/c/vuv/resources/shaders/shader.vert");
+    render->fragment_shader_src = read_file("/home/vushu/coding/c/vuv/resources/shaders/shader.frag");
     return VUV_OK;
 }
 
+void get_view_matrix(vuv_render_data *render) {
+}
 
 void flush(vuv_render_data *render) {
     glUseProgram(render->shader_program);
-//    create_gpu_data_mat4(render->shader_program, "uMvp", render->camera->view_matrix);
+
+    create_gpu_data_mat4(render->shader_program, "uMvp", GLM_MAT4_IDENTITY);
+
+    //texture bind no implemented yet
+
+    glBindVertexArray(render->gl_VA);
+
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(2);
+    glEnableVertexAttribArray(3);
+    glEnableVertexAttribArray(4);
+
+    glDrawElements(GL_TRIANGLES, render->render_indices_count, GL_UNSIGNED_INT, 0);
+
+    glDisableVertexAttribArray(0);
+    glDisableVertexAttribArray(1);
+    glDisableVertexAttribArray(2);
+    glDisableVertexAttribArray(3);
+    glDisableVertexAttribArray(4);
+
+    glBindVertexArray(0);
+    // unbind texture here later
+    glUseProgram(0);
+    render->render_indices_count = 0;
+
+}
+
+void check_maximum_render(vuv_render_data *render) {
+    if (render->render_indices_count >= MAX_INDEX_COUNT) {
+        end_batch(render);
+        flush(render);
+        begin_batch(render);
+    }
 }
 
 int vuv_render_setup_sdl() {
@@ -108,8 +229,7 @@ int vuv_render_compile_shaders(vuv_render_data *render) {
 
     if (!success)
         return VUV_RENDER_SHADER_FAILED;
-
-    return vuv_render_create_program(render);
+    return VUV_OK;
 }
 
 int vuv_render_init(vuv_render_data *render) {
@@ -117,20 +237,27 @@ int vuv_render_init(vuv_render_data *render) {
         return VUV_GLAD_FAILED;
     }
 
-//    render->vertex_shader_src = "#version 300 es precision highp float;precision highp int;in vec3 aPos;in vec4 aColor;in vec2 aTexCoords;in float aTexId;in float aType;uniform mat4 uMvp;out vec4 fColor;out vec2 fTexCoords;out float fTexId;out float fType;void main() {    fColor = aColor;    fTexCoords = aTexCoords;    fTexId = aTexId;    fType = aType;    gl_Position = uMvp * vec4(aPos, 1.0);}";
-//    render->fragment_shader_src = "#version 300 es precision highp float;precision highp int;in vec4 fColor;in vec2 fTexCoords;in float fTexId;in float fType;uniform sampler2D uTextures[8];out vec4 color;void main () {    //color = vec4( 0.6, 1.0, 1.0, 1.0 );    //color = fColor;    //color = texture(uTex, fTexCoords);    //color = fColor * texture(uTextures[1], fTexCoords);    vec4 tempColor = vec4(1.0,1.0,1.0,1.0);    if (fTexId == 0.0f) {        color = fColor;    }    else if (fTexId == 1.0f) {        tempColor = texture(uTextures[1], fTexCoords);        //tempColor = vec4(vec3(1.0 - texture(uTextures[1], fTexCoords)), 1.0);    }    else if (fTexId == 2.0f) {        tempColor = texture(uTextures[2], fTexCoords);        //tempColor = vec4(vec3(1.0 - texture(uTextures[1], fTexCoords)), 1.0);    }    else if (fTexId == 3.0f) {        tempColor = texture(uTextures[3], fTexCoords);    }    else if (fTexId == 4.0f) {        tempColor = texture(uTextures[4], fTexCoords);    }    else if (fTexId == 5.0f) {        tempColor = texture(uTextures[5], fTexCoords);    }    else if (fTexId == 6.0f) {        tempColor = texture(uTextures[6], fTexCoords);    }    else if (fTexId == 7.0f) {        tempColor = texture(uTextures[7], fTexCoords);    }    if (fType == 0.0f){        color = fColor * tempColor;        //color.rgb = (fColor.rgb) + (tempColor.rgb * (1.0f - fColor.a)) ;        //color.rgb = (tempColor.rgb) + (fColor.rgb * (1.0f - tempColor.a)) ;    }    //font    else if (fType == 1.0f){        color = fColor * tempColor.a;    }}";
-    render->vertex_shader_src = malloc(255);
-    render->fragment_shader_src = malloc(255);
     if (read_shaders(render) < 0) {
         return VUV_FAIL;
     }
-    render->clear_color.r = 0.0f;
-    render->clear_color.g = 0.3f;
-    render->clear_color.b = 0.3f;
+    render->clear_color.r = 0.08f;
+    render->clear_color.g = 0.08f;
+    render->clear_color.b = 0.09f;
     render->clear_color.a = 1.0f;
 
     render->camera = malloc(sizeof(vuv_camera));
-    return vuv_render_compile_shaders(render);
+    if (vuv_render_compile_shaders(render) < 1) {
+        return VUV_RENDER_SHADER_FAILED;
+    }
+    if (vuv_render_create_program(render) < 1) {
+        return VUV_RENDER_PROGRAM_FAILED;
+    }
+
+    if (vuv_render_create_gpu_data(render) < 1) {
+        return VUV_RENDER_GPU_DATA_FAILED;
+    }
+    return VUV_OK;
+
 }
 
 int vuv_render_create_program(vuv_render_data *render) {
@@ -153,51 +280,6 @@ int vuv_render_create_program(vuv_render_data *render) {
     glDeleteShader(render->compiled_vertex_shader);
     glDeleteShader(render->compiled_fragment_shader);
 
-    // set up vertex data (and buffer(s)) and configure vertex attributes
-    // ------------------------------------------------------------------
-    float vertices[] = {
-            0.5f, 0.5f, 0.0f,   // top right
-            0.5f, -0.5f, 0.0f,  // bottom right
-            -0.5f, -0.5f, 0.0f, // bottom left
-            -0.5f, 0.5f, 0.0f   // top left
-    };
-    unsigned int indices[] = {
-            // note that we start from 0!
-            0, 1, 3, // first Triangle
-            1, 2, 3  // second Triangle
-    };
-    unsigned int VBO, VAO, EBO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
-    // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
-    glBindVertexArray(VAO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *) 0);
-    glEnableVertexAttribArray(0);
-
-    // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    // remember: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
-    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-    // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
-    // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
-    glBindVertexArray(0);
-    render->VBO = VBO;
-    render->VAO = VAO;
-    render->EBO = EBO;
-
-    vuv_render_create_vertex_buffer(render);
-
-
     return VUV_OK;
 }
 
@@ -210,20 +292,9 @@ void vuv_render_clear(vuv_render_data *render) {
     glClear(GL_COLOR_BUFFER_BIT);
 }
 
-
-void vuv_render_draw(vuv_application *app) {
-    glUseProgram(app->render->shader_program);
-    glBindVertexArray(app->render->VAO);
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-    SDL_GL_SwapWindow(app->context->sdl_window);
-}
-
 void vuv_render_free(vuv_render_data *render) {
-    glDeleteVertexArrays(1, &render->VAO);
-    glDeleteBuffers(1, &render->VBO);
-    glDeleteBuffers(1, &render->EBO);
     glDeleteProgram(render->shader_program);
-    vuv_render_free_vertex_buffer(render->vertex_buffer);
+    vuv_render_free_vertex_buffer(render);
     free(render->camera);
     free(render->vertex_shader_src);
     free(render->fragment_shader_src);
@@ -241,8 +312,11 @@ void vuv_render_free_vertex_buffer(vuv_render_data *render) {
 }
 
 int vuv_render_create_gpu_data(vuv_render_data *render) {
+
+    vuv_render_create_vertex_buffer(render);
+
     glGenVertexArrays(1, &render->gl_VA);
-    glad_glBindVertexArray(render->gl_VA);
+    glBindVertexArray(render->gl_VA);
 
     glGenBuffers(1, &render->gl_VB);
     glBindBuffer(GL_ARRAY_BUFFER, &render->gl_VB);
@@ -265,7 +339,7 @@ int vuv_render_create_gpu_data(vuv_render_data *render) {
     //texcoords
     glEnableVertexAttribArray(2);
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(vuv_render_vertex),
-                          (const GLvoid *) offsetof(vuv_render_vertex, texture_coords));
+                          (const GLvoid *) offsetof(vuv_render_vertex, texture_coord));
     //texture_id
     glEnableVertexAttribArray(3);
     glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(vuv_render_vertex),
@@ -282,10 +356,10 @@ int vuv_render_create_gpu_data(vuv_render_data *render) {
     glDisableVertexAttribArray(3);
     glDisableVertexAttribArray(4);
 
-    uint32_t indices[MAX_VERTEX_COUNT];
+    uint32_t indices[MAX_INDEX_COUNT];
     uint32_t offset = 0;
 
-    for (unsigned int i = 0; i < MAX_VERTEX_COUNT; i += 6) {
+    for (unsigned int i = 0; i < MAX_INDEX_COUNT; i += 6) {
 
         indices[i + 0] = 3 + offset;
         indices[i + 1] = 2 + offset;
@@ -311,10 +385,22 @@ int vuv_render_create_gpu_data(vuv_render_data *render) {
     glBindVertexArray(0);
 
     begin_batch(render);
+    return VUV_OK;
 }
 
 void vuv_render_end_batch(vuv_render_data *render) {
     end_batch(render);
     flush(render);
     begin_batch(render);
+}
+
+void vuv_render_draw_quad(vuv_render_data *render) {
+    check_maximum_render(render);
+    vec2 position, size;
+    position[0] = 10.0f;
+    position[1] = 10.0f;
+    size[0] = 50.0f;
+    size[1] = 50.0f;
+    set_render_vertices(render, position, size);
+    increment_number_of_vertices(render);
 }

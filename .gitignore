@@ -1,5 +1,8 @@
 native/
 .cache/
 build/
+cmake-build-debug/
+.clangd/
+native/
 compile_commands.json
 NetrwTreeListing
