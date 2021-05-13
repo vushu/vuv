@@ -2,7 +2,7 @@
 
 #include <SDL2/SDL.h>
 #include <stdbool.h>
-#include <cglm/cglm.h>
+#include <cglm/call.h>
 
 typedef struct {
     float r, g, b, a;
@@ -33,9 +33,9 @@ typedef struct {
 } vuv_window_data;
 
 typedef struct {
-    vec3 position;
-    vec4 color;
-    vec2 texture_coord;
+    float position[3];
+    float color[4];
+    float texture_coord[2];
     float texture_id;
     float type_id;
 } vuv_render_vertex;
@@ -59,7 +59,7 @@ typedef struct {
     unsigned int compiled_vertex_shader,
             compiled_fragment_shader,
             shader_program,
-            gl_VA, gl_VB, gl_IB;
+            gl_VA, gl_VB, gl_EB;
 
     vuv_render_vertex* vertex_buffer;
     vuv_render_vertex* vertex_buffer_ptr;

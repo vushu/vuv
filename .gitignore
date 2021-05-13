@@ -6,3 +6,9 @@ cmake-build-debug/
 native/
 compile_commands.json
 NetrwTreeListing
+/.idea/.gitignore
+/.idea/.name
+/.idea/misc.xml
+/.idea/modules.xml
+/.idea/vcs.xml
+/.idea/vuv.iml

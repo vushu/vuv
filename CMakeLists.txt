@@ -45,4 +45,4 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     PRIVATE src)
 
 
-target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARY} glad ${CMAKE_DL_LIBS} cglm_headers)
+target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARY} glad ${CMAKE_DL_LIBS} cglm_headers m)

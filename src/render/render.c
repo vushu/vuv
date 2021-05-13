@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define MAX_QUAD_COUNT 100
+#define MAX_QUAD_COUNT 1000
 #define MAX_INDEX_COUNT MAX_QUAD_COUNT * 6
 #define MAX_VERTEX_COUNT MAX_QUAD_COUNT * 4
 
@@ -30,11 +30,13 @@ void end_batch(vuv_render_data *render) {
 }
 
 void create_gpu_data_mat4(int program_id, char *var_name, mat4 matrix) {
-    glUniformMatrix4fv(glGetUniformLocation(program_id, var_name), 1, GL_FALSE, matrix);
+    unsigned int id = glGetUniformLocation(program_id, var_name);
+    glUniformMatrix4fv(id, 1, GL_FALSE, matrix[0]);
 }
 
+/*
 void create_gpu_data_mat3(int program_id, char *var_name, mat3 matrix) {
-    glUniformMatrix3fv(glGetUniformLocation(program_id, var_name), 1, GL_FALSE, matrix);
+    glUniformMatrix3fv(glGetUniformLocation(program_id, var_name), 1, GL_FALSE, matrix[0]);
 }
 
 void create_gpu_data_vec3(int program_id, char *var_name, vec3 vec) {
@@ -48,6 +50,7 @@ void create_gpu_data_vec2(int program_id, char *var_name, vec2 vec) {
 void create_gpu_data_float(int program_id, char *var_name, float value) {
     glUniform1f(glGetUniformLocation(program_id, var_name), value);
 }
+*/
 
 char *read_file(char *fn) {
 
@@ -150,13 +153,35 @@ int read_shaders(vuv_render_data *render) {
     return VUV_OK;
 }
 
-void get_view_matrix(vuv_render_data *render) {
+void calc_view_matrix(vuv_render_data *render) {
+
+    vec3 camera_front;
+    camera_front[0] = render->camera->position[0];
+    camera_front[1] = render->camera->position[1];
+    camera_front[2] = -1.0f;
+
+    vec3 camera_up;
+    camera_up[0] = 0.0f;
+    camera_up[1] = 1.0f;
+    camera_up[2] = 0.0f;
+
+    vec3 eye;
+    eye[0] = render->camera->position[0];
+    eye[1] = render->camera->position[1];
+    eye[2] = 20.0f;
+
+    glm_mat4_copy(GLM_MAT4_IDENTITY, render->camera->view_matrix);
+    glm_lookat(eye, camera_front, camera_up, render->camera->view_matrix);
+
 }
 
 void flush(vuv_render_data *render) {
-    glUseProgram(render->shader_program);
 
-    create_gpu_data_mat4(render->shader_program, "uMvp", GLM_MAT4_IDENTITY);
+    glUseProgram(render->shader_program);
+    mat4 mvp = GLM_MAT4_IDENTITY_INIT;
+    calc_view_matrix(render);
+    glm_mul(render->camera->project_matrix, render->camera->view_matrix, mvp);
+    create_gpu_data_mat4(render->shader_program, "uMvp", mvp);
 
     //texture bind no implemented yet
 
@@ -170,11 +195,11 @@ void flush(vuv_render_data *render) {
 
     glDrawElements(GL_TRIANGLES, render->render_indices_count, GL_UNSIGNED_INT, 0);
 
-    glDisableVertexAttribArray(0);
-    glDisableVertexAttribArray(1);
-    glDisableVertexAttribArray(2);
-    glDisableVertexAttribArray(3);
-    glDisableVertexAttribArray(4);
+//    glDisableVertexAttribArray(0);
+//    glDisableVertexAttribArray(1);
+//    glDisableVertexAttribArray(2);
+//    glDisableVertexAttribArray(3);
+//    glDisableVertexAttribArray(4);
 
     glBindVertexArray(0);
     // unbind texture here later
@@ -191,6 +216,71 @@ void check_maximum_render(vuv_render_data *render) {
     }
 }
 
+void vuv_render_test_triangle(vuv_render_data *render) {
+    // set up vertex data (and buffer(s)) and configure vertex attributes
+    // ------------------------------------------------------------------
+
+    float vertices[] = {
+            0.5f, 0.5f, 0.0f,   1.0f,0.0f,0.0f,1.0f, // top right
+            0.5f, -0.5f, 0.0f,  1.0f,0.0f,0.0f,1.0f, // bottom right
+            -0.5f, -0.5f, 0.0f, 1.0f,0.0f,0.0f,1.0f, // bottom left
+            -0.5f, 0.5f, 0.0f,  1.0f,0.0f,0.0f,1.0f// top left
+    };
+    unsigned int indices[] = {  // note that we start from 0!
+            0, 1, 3,  // first Triangle
+            1, 2, 3   // second Triangle
+    };
+
+    mat4 mvp = GLM_MAT4_IDENTITY_INIT;
+    calc_view_matrix(render);
+//    glm_mat4_mul(render->camera->project_matrix, render->camera->view_matrix, mvp);
+    create_gpu_data_mat4(render->shader_program, "uMvp", mvp);
+
+    unsigned int VBO, VAO, EBO;
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
+    // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
+    glBindVertexArray(VAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (const GLvoid *) 0);
+    //color
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (const GLvoid *) ( 3 * sizeof (float)));
+
+    // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    // remember: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
+    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+    // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
+    // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
+    glUseProgram(render->shader_program);
+    glBindVertexArray(0);
+
+
+    // draw our first triangle
+    // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
+    glBindVertexArray(VAO);
+
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+    // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
+    // -------------------------------------------------------------------------------
+    // uncomment this call to draw in wireframe polygons.
+//    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    //klj flush(render);
+}
+
+
 int vuv_render_setup_sdl() {
     SDL_SetHint(SDL_HINT_VIDEO_HIGHDPI_DISABLED, "0");
 
@@ -203,8 +293,13 @@ int vuv_render_setup_sdl() {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
     // Want double-buffering
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
+    /*Set the colour depth (16 bit 565). */
+    SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 5);
+    SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 6);
+    SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 5);
     return VUV_OK;
 }
 
@@ -240,12 +335,22 @@ int vuv_render_init(vuv_render_data *render) {
     if (read_shaders(render) < 0) {
         return VUV_FAIL;
     }
-    render->clear_color.r = 0.08f;
+    render->clear_color.r = 0.05f;
     render->clear_color.g = 0.08f;
-    render->clear_color.b = 0.09f;
+    render->clear_color.b = 0.4f;
     render->clear_color.a = 1.0f;
 
+    //camera stuff
     render->camera = malloc(sizeof(vuv_camera));
+    render->camera->width = 1920;
+    render->camera->height = 1080;
+
+    glm_mat4_copy(GLM_MAT4_IDENTITY, render->camera->project_matrix);
+
+    glm_ortho(0.0f, render->camera->width, render->camera->height, 0.0f, -1.0f, 100.0f, render->camera->project_matrix);
+    calc_view_matrix(render);
+
+
     if (vuv_render_compile_shaders(render) < 1) {
         return VUV_RENDER_SHADER_FAILED;
     }
@@ -256,6 +361,7 @@ int vuv_render_init(vuv_render_data *render) {
     if (vuv_render_create_gpu_data(render) < 1) {
         return VUV_RENDER_GPU_DATA_FAILED;
     }
+//    glViewport(0,0, render->camera->width, render->camera->height);
     return VUV_OK;
 
 }
@@ -288,8 +394,10 @@ void vuv_render_clear(vuv_render_data *render) {
         SDL_GL_SetSwapInterval(1);
     }
 
+    glViewport(0, 0, 1920, 1080);
     glClearColor(render->clear_color.r, render->clear_color.g, render->clear_color.b, render->clear_color.a);
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 }
 
 void vuv_render_free(vuv_render_data *render) {
@@ -371,8 +479,8 @@ int vuv_render_create_gpu_data(vuv_render_data *render) {
 
         offset += 4;
     }
-    glGenBuffers(1, &render->gl_IB);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, &render->gl_IB);
+    glGenBuffers(1, &render->gl_EB);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, &render->gl_EB);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
     //Done generating
     //Batch data
@@ -394,13 +502,11 @@ void vuv_render_end_batch(vuv_render_data *render) {
     begin_batch(render);
 }
 
-void vuv_render_draw_quad(vuv_render_data *render) {
+void vuv_render_draw_quad(vuv_render_data *render, vec2 position) {
     check_maximum_render(render);
-    vec2 position, size;
-    position[0] = 10.0f;
-    position[1] = 10.0f;
-    size[0] = 50.0f;
-    size[1] = 50.0f;
+    vec2 size;
+    size[0] = 100.0f;
+    size[1] = 100.0f;
     set_render_vertices(render, position, size);
     increment_number_of_vertices(render);
 }

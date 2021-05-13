@@ -3,7 +3,6 @@
 #include "SDL_timer.h"
 #include "SDL_video.h"
 #include "vuv/application_states.h"
-#include "vuv/errors.h"
 #include "vuv/input.h"
 #include "vuv/render.h"
 #include "vuv/window.h"
@@ -55,12 +54,19 @@ void vuv_application_destroy(vuv_application *vuv_app) {
 void vuv_application_game_loop(vuv_application *app) {
     SDL_Delay(VUV_FRAME_PER_SEC);
     vuv_input_listen(app);
+    vec2 position;
+    position[0] = 0.0f;
+    position[1] = 0.0f;
     vuv_render_clear(app->render);
+
     int i;
     for (i = 0; i < 10; i++) {
-        vuv_render_draw_quad(app->render);
+//        vuv_render_draw_quad(app->render, position);
     }
-    vuv_render_end_batch(app->render);
+//    vuv_render_draw_quad(app->render, position);
+//    vuv_render_end_batch(app->render);
 
+    vuv_render_test_triangle(app->render);
     SDL_GL_SwapWindow(app->context->sdl_window);
+
 }

@@ -26,7 +26,7 @@ void callback_key_up(void *data, SDL_Event event) {
 
 int main(int argc, char *args[]) {
 
-    app = vuv_application_create("Vuv Game", 800, 600);
+    app = vuv_application_create("Vuv Game", 1920, 1080);
 
     if (vuv_application_init(app) == 1) {
         app->input->key_down = &callback_key_down;
