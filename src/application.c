@@ -54,19 +54,22 @@ void vuv_application_destroy(vuv_application *vuv_app) {
 void vuv_application_game_loop(vuv_application *app) {
     SDL_Delay(VUV_FRAME_PER_SEC);
     vuv_input_listen(app);
-    vec2 position;
-    position[0] = 0.0f;
-    position[1] = 0.0f;
+    vec2 position, size;
+    position[0] = 10.0f;
+    position[1] = 45.0f;
+    size[0] = 200;
+    size[1] = 200;
     vuv_render_clear(app->render);
 
-    int i;
-    for (i = 0; i < 10; i++) {
-//        vuv_render_draw_quad(app->render, position);
-    }
-//    vuv_render_draw_quad(app->render, position);
-//    vuv_render_end_batch(app->render);
 
-    vuv_render_test_triangle(app->render);
+    vuv_render_begin_batch(app->render);
+    for (int i = 0; i < 1000; i++)
+        vuv_render_draw_quad(app->render, position, size);
+//        vuv_render_draw_quad(app->render, position);
+    vuv_render_end_batch(app->render);
+    vuv_render_flush_batch(app->render);
+//    flush2(app->render);
     SDL_GL_SwapWindow(app->context->sdl_window);
+
 
 }
