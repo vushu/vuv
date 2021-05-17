@@ -1,11 +1,20 @@
 #include "vuv/render.h"
 #include "SDL_log.h"
 #include "SDL_video.h"
+#include "cglm/call/vec3.h"
+#include "cglm/types.h"
 #include "vuv/datatypes.h"
 #include "vuv/errors.h"
+#include "vuv/gl_utils.h"
 #include <glad/glad.h>
 #include <stdio.h>
 #include <stdlib.h>
+//#include <vuv/nuklear_sdl_gl3.h>
+#include <vuv/nuklear.h>
+#include <vuv/nuklear_sdl_gl3.h>
+//FOR NUKLEAR
+#define MAX_VERTEX_MEMORY 512 * 1024
+#define MAX_ELEMENT_MEMORY 128 * 1024
 
 #define MAX_QUAD_COUNT 1000
 #define MAX_INDEX_COUNT MAX_QUAD_COUNT * 6
@@ -24,39 +33,13 @@ void begin_batch(vuv_render_data *render) {
 }
 
 void end_batch(vuv_render_data *render) {
-    GLsizeiptr size = (uint8_t*) render->vertex_buffer_ptr - (uint8_t*)render->vertex_buffer;
+
+    GLsizeiptr size = (uint8_t *) render->vertex_buffer_ptr - (uint8_t *) render->vertex_buffer;
+
     glBindBuffer(GL_ARRAY_BUFFER, render->gl_VB);
-    float vertices[] = {
-            100.0f, 0.0f, 0.0f,   1.0f,0.0f,0.0f,1.0f, // top right
-            100.0f, 100.0f, 0.0f,  1.0f,0.0f,0.0f,1.0f, // bottom right
-            0.0f, 100.0f, 0.0f, 1.0f,0.0f,0.0f,1.0f, // bottom left
-            0.0f, 0.0f, 0.0f,  1.0f,0.0f,0.0f,1.0f// top left
-    };
+
     glBufferSubData(GL_ARRAY_BUFFER, 0, size, render->vertex_buffer);
 }
-
-void create_gpu_data_mat4(int program_id, char *var_name, mat4 matrix) {
-    unsigned int id = glGetUniformLocation(program_id, var_name);
-    glUniformMatrix4fv(id, 1, GL_FALSE, matrix[0]);
-}
-
-/*
-void create_gpu_data_mat3(int program_id, char *var_name, mat3 matrix) {
-    glUniformMatrix3fv(glGetUniformLocation(program_id, var_name), 1, GL_FALSE, matrix[0]);
-}
-
-void create_gpu_data_vec3(int program_id, char *var_name, vec3 vec) {
-    glUniform3fv(glGetUniformLocation(program_id, var_name), 1, vec);
-}
-
-void create_gpu_data_vec2(int program_id, char *var_name, vec2 vec) {
-    glUniform2fv(glGetUniformLocation(program_id, var_name), 1, vec);
-}
-
-void create_gpu_data_float(int program_id, char *var_name, float value) {
-    glUniform1f(glGetUniformLocation(program_id, var_name), value);
-}
-*/
 
 char *read_file(char *fn) {
 
@@ -85,74 +68,51 @@ char *read_file(char *fn) {
     return content;
 }
 
-void set_render_vertex(vuv_render_vertex* vertex, vec2 position, vec2 texture_coord) {
+void set_render_vertex(vuv_render_vertex *vertex, vec2 position, vec4 color, vec2 texture_coord) {
     // test no texture
-    vertex->position[0] = position[0];
-    vertex->position[1] = position[1];
-    vertex->position[2] = 0.0f;
+    //
+    vec3 pos;
+    pos[0] = position[0];
+    pos[1] = position[1];
+    pos[2] = 0.0f;
 
-    vertex->color[0] = 0.0f;
-    vertex->color[1] = 1.0f;
-    vertex->color[2] = 1.0f;
-    vertex->color[3] = 1.0f;
+    glm_vec3_copy(pos, *vertex->position);
+
+    glm_vec4_copy(color, *vertex->color);
     vertex++;
-
-//    vertex.vertex_buffer_ptr->texture_id = 0.0f;
-//    vertex.vertex_buffer_ptr->type_id = 0.0f;
-
-//    vertex.texture_coord[0] = texture_coord[0];
-//    vertex.texture_coord[1] = texture_coord[1];
-//    vertex.
-//    vertex.vertex_buffer_ptr++;
-
 }
 
-void set_render_vertices(vuv_render_data *render, vec2 position, vec2 size) {
+void set_render_vertices(vuv_render_data *render, vec2 position, vec2 size, vec4 color) {
 
-    //BR
-    vec2 bot_right;
-    bot_right[0] = position[0] + size[0];
-    bot_right[1] = position[1] + size[1];
-    vec2 bot_right_texture_coord;
-    bot_right_texture_coord[0] = 1.0f;
-    bot_right_texture_coord[1] = 1.0f;
+    int i;
+    float y = 1.0f;
+    float x = 1.0f;
+    for (i = 0; i < 4; i++) {
+        vec2 texture_coord;
+        vec2 pos;
 
-    //TR
-    vec2 top_right;
-    top_right[0] = position[0] + size[0];
-    top_right[1] = position[1];
-    vec2 top_right_texture_coord;
-    top_right_texture_coord[0] = 1.0f;
-    top_right_texture_coord[1] = 0.0f;
+        /*       *
 
+         *       */
 
-    //TL
-    vec2 top_left;
-    top_left[0] = position[0];
-    top_left[1] = position[1];
-    vec2 top_left_texture_coord;
-    top_left_texture_coord[0] = 0.0f;
-    top_left_texture_coord[1] = 0.0f;
+        if (i == 1) {
+            y = 0.0f;
+        } else if (i == 2) {
+            x = 0.0f;
+        } else if (i == 3) {
+            y = 1.0f;
+        }
 
+        texture_coord[0] = x;
+        texture_coord[1] = y;
 
-    //BL
-    vec2 bot_left;
-    bot_left[0] = position[0];
-    bot_left[1] = position[1] + size[1];
-    vec2 bot_left_texture_coord;
-    bot_left_texture_coord[0] = 0.0f;
-    bot_left_texture_coord[1] = 1.0f;
+        pos[0] = position[0] + size[0] * x;
+        pos[1] = position[1] + size[1] * y;
 
 
-    set_render_vertex(render->vertex_buffer_ptr, bot_right, bot_right_texture_coord); //BR
-    render->vertex_buffer_ptr++;
-    set_render_vertex(render->vertex_buffer_ptr, top_right, top_right_texture_coord); //TR
-    render->vertex_buffer_ptr++;
-    set_render_vertex(render->vertex_buffer_ptr, top_left, top_left_texture_coord); //TL
-    render->vertex_buffer_ptr++;
-    set_render_vertex(render->vertex_buffer_ptr, bot_left, bot_left_texture_coord); //BL
-    render->vertex_buffer_ptr++;
-
+        set_render_vertex(render->vertex_buffer_ptr, pos, color, texture_coord); //BR
+        render->vertex_buffer_ptr++;
+    }
 
 }
 
@@ -167,7 +127,6 @@ int read_shaders(vuv_render_data *render) {
 }
 
 void calc_view_matrix(vuv_render_data *render) {
-
     vec3 camera_front;
     camera_front[0] = render->camera->position[0];
     camera_front[1] = render->camera->position[1];
@@ -185,10 +144,9 @@ void calc_view_matrix(vuv_render_data *render) {
 
     glm_mat4_copy(GLM_MAT4_IDENTITY, render->camera->view_matrix);
     glm_lookat(eye, camera_front, camera_up, render->camera->view_matrix);
-
 }
 
-void vuv_render_init_shader(vuv_render_data* render) {
+void vuv_render_init_shader(vuv_render_data *render) {
 
     vuv_render_create_vertex_buffer(render);
     unsigned int VBO, VAO, EBO;
@@ -202,29 +160,30 @@ void vuv_render_init_shader(vuv_render_data* render) {
     // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
     glBindVertexArray(VAO);
 
-    unsigned int indices[] = {  // note that we start from 0!
-            3, 2, 0,  // first Triangle
-            0, 2, 1   // second Triangle
+    unsigned int indices[] = {
+            // note that we start from 0!
+            3, 2, 0, // first Triangle
+            0, 2, 1  // second Triangle
     };
-
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vuv_render_vertex), (const GLvoid *) (offsetof(vuv_render_vertex, position)));
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vuv_render_vertex),
+                          (const GLvoid *) (offsetof(vuv_render_vertex, position)));
     //color
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(vuv_render_vertex), (const GLvoid *) (offsetof(vuv_render_vertex, color)));
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(vuv_render_vertex),
+                          (const GLvoid *) (offsetof(vuv_render_vertex, color)));
 
     // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     render->gl_VB = VBO;
     render->gl_VA = VAO;
-
 }
 
-void flush2(vuv_render_data* render){
+void flush2(vuv_render_data *render) {
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
     mat4 mvp = GLM_MAT4_IDENTITY_INIT;
@@ -232,24 +191,20 @@ void flush2(vuv_render_data* render){
     glm_mat4_mul(render->camera->project_matrix, render->camera->view_matrix, mvp);
     create_gpu_data_mat4(render->shader_program, "uMvp", mvp);
 
-
     glUseProgram(render->shader_program);
     glBindVertexArray(0);
-
 
     // draw our first triangle
     // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
     glBindVertexArray(render->gl_VA);
 
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
 }
 
 void flush(vuv_render_data *render) {
 
     glBindVertexArray(0);
     glUseProgram(render->shader_program);
-
 
     mat4 mvp = GLM_MAT4_IDENTITY_INIT;
     calc_view_matrix(render);
@@ -262,22 +217,21 @@ void flush(vuv_render_data *render) {
 
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
-//    glEnableVertexAttribArray(2);
-//    glEnableVertexAttribArray(3);
-//    glEnableVertexAttribArray(4);
+    glEnableVertexAttribArray(2);
+    glEnableVertexAttribArray(3);
+    glEnableVertexAttribArray(4);
 
     glDrawElements(GL_TRIANGLES, render->render_indices_count, GL_UNSIGNED_INT, 0);
 
     glDisableVertexAttribArray(0);
     glDisableVertexAttribArray(1);
-//    glDisableVertexAttribArray(2);
-//    glDisableVertexAttribArray(3);
-//    glDisableVertexAttribArray(4);
+    glDisableVertexAttribArray(2);
+    glDisableVertexAttribArray(3);
+    glDisableVertexAttribArray(4);
 
     glUseProgram(0);
     // unbind texture here later
     render->render_indices_count = 0;
-
 }
 
 void check_maximum_render(vuv_render_data *render) {
@@ -293,14 +247,15 @@ void vuv_render_test_triangle(vuv_render_data *render) {
     // ------------------------------------------------------------------
 
     float vertices[] = {
-            100.0f, 0.0f, 0.0f,   1.0f,0.0f,0.0f,1.0f, // top right
-            100.0f, 100.0f, 0.0f,  1.0f,0.0f,0.0f,1.0f, // bottom right
-            0.0f, 100.0f, 0.0f, 1.0f,0.0f,0.0f,1.0f, // bottom left
-            0.0f, 0.0f, 0.0f,  1.0f,0.0f,0.0f,1.0f// top left
+            100.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f,   // top right
+            100.0f, 100.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, // bottom right
+            0.0f, 100.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f,   // bottom left
+            0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f      // top left
     };
-    unsigned int indices[] = {  // note that we start from 0!
-            3, 2, 0,  // first Triangle
-            0, 2, 1   // second Triangle
+    unsigned int indices[] = {
+            // note that we start from 0!
+            3, 2, 0, // first Triangle
+            0, 2, 1  // second Triangle
     };
 
     mat4 mvp = GLM_MAT4_IDENTITY_INIT;
@@ -322,10 +277,12 @@ void vuv_render_test_triangle(vuv_render_data *render) {
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vuv_render_vertex), (const GLvoid *) (offsetof(vuv_render_vertex, position)));
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vuv_render_vertex),
+                          (const GLvoid *) (offsetof(vuv_render_vertex, position)));
     //color
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(vuv_render_vertex), (const GLvoid *) (offsetof(vuv_render_vertex, color)));
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(vuv_render_vertex),
+                          (const GLvoid *) (offsetof(vuv_render_vertex, color)));
 
     // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -338,8 +295,7 @@ void vuv_render_test_triangle(vuv_render_data *render) {
     glUseProgram(render->shader_program);
     glBindVertexArray(0);
 
-
-    // draw our first triangle
+    // draw our first triangl        vuv_application_run(app);e
     // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
     glBindVertexArray(VAO);
 
@@ -348,10 +304,9 @@ void vuv_render_test_triangle(vuv_render_data *render) {
     // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
     // -------------------------------------------------------------------------------
     // uncomment this call to draw in wireframe polygons.
-//    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    //    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     //klj flush(render);
 }
-
 
 int vuv_render_setup_sdl() {
     SDL_SetHint(SDL_HINT_VIDEO_HIGHDPI_DISABLED, "0");
@@ -422,7 +377,6 @@ int vuv_render_init(vuv_render_data *render) {
     glm_ortho(0.0f, render->camera->width, render->camera->height, 0.0f, -1.0f, 100.0f, render->camera->project_matrix);
     calc_view_matrix(render);
 
-
     if (vuv_render_compile_shaders(render) < 1) {
         return VUV_RENDER_SHADER_FAILED;
     }
@@ -430,13 +384,10 @@ int vuv_render_init(vuv_render_data *render) {
         return VUV_RENDER_PROGRAM_FAILED;
     }
 
-//    vuv_render_init_shader(render);
     if (vuv_render_create_shader_data(render) < 1) {
         return VUV_RENDER_GPU_DATA_FAILED;
     }
-//    glViewport(0,0, render->camera->width, render->camera->height);
     return VUV_OK;
-
 }
 
 int vuv_render_create_program(vuv_render_data *render) {
@@ -467,24 +418,23 @@ void vuv_render_clear(vuv_render_data *render) {
         SDL_GL_SetSwapInterval(1);
     }
 
-    glViewport(0, 0, 1920, 1080);
+    /*glViewport(0, 0, 1920, 1080);*/
     glClearColor(render->clear_color.r, render->clear_color.g, render->clear_color.b, render->clear_color.a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
 }
 
 void vuv_render_free(vuv_render_data *render) {
     glDeleteProgram(render->shader_program);
     vuv_render_free_vertex_buffer(render);
     free(render->camera);
-    free(render->vertex_shader_src);
-    free(render->fragment_shader_src);
+    free((char *) render->vertex_shader_src);
+    free((char *) render->fragment_shader_src);
 
     free(render);
 }
 
 void vuv_render_create_vertex_buffer(vuv_render_data *render) {
-    render->vertex_buffer = (vuv_render_vertex*) malloc(MAX_VERTEX_COUNT * sizeof(vuv_render_vertex));
+    render->vertex_buffer = (vuv_render_vertex *) malloc(MAX_VERTEX_COUNT * sizeof(vuv_render_vertex));
 }
 
 void vuv_render_free_vertex_buffer(vuv_render_data *render) {
@@ -512,28 +462,32 @@ int vuv_render_create_shader_data(vuv_render_data *render) {
     }
 
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vuv_render_vertex), (const GLvoid *) offsetof(vuv_render_vertex, position));
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vuv_render_vertex),
+                          (const GLvoid *) offsetof(vuv_render_vertex, position));
     //color
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(vuv_render_vertex), (const GLvoid *) offsetof(vuv_render_vertex, color));
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(vuv_render_vertex),
+                          (const GLvoid *) offsetof(vuv_render_vertex, color));
 
-    printf("mama %i", sizeof(vuv_render_vertex));
     //texcoords
-//    glEnableVertexAttribArray(2);
-//    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(vuv_render_vertex), (const GLvoid *) offsetof(vuv_render_vertex, texture_coord));
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(vuv_render_vertex),
+                          (const GLvoid *) offsetof(vuv_render_vertex, texture_coord));
     //texture_id
-//    glEnableVertexAttribArray(3);
-//    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(vuv_render_vertex), (const GLvoid *) offsetof(vuv_render_vertex, texture_id));
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(vuv_render_vertex),
+                          (const GLvoid *) offsetof(vuv_render_vertex, texture_id));
     //type
-//    glEnableVertexAttribArray(4);
-//    glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, sizeof(vuv_render_vertex), (const GLvoid *) offsetof(vuv_render_vertex, type_id));
+    glEnableVertexAttribArray(4);
+    glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, sizeof(vuv_render_vertex),
+                          (const GLvoid *) offsetof(vuv_render_vertex, type_id));
 
     //disable for good measure
     glDisableVertexAttribArray(0);
     glDisableVertexAttribArray(1);
-//    glDisableVertexAttribArray(2);
-//    glDisableVertexAttribArray(3);
-//    glDisableVertexAttribArray(4);
+    glDisableVertexAttribArray(2);
+    glDisableVertexAttribArray(3);
+    glDisableVertexAttribArray(4);
 
     uint32_t indices[MAX_INDEX_COUNT];
     uint32_t offset = 0;
@@ -552,9 +506,10 @@ int vuv_render_create_shader_data(vuv_render_data *render) {
     }
     glGenBuffers(1, &EBO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    unsigned int indices2[] = {  // note that we start from 0!
-            3, 2, 0,  // first Triangle
-            0, 2, 1   // second Triangle
+    unsigned int indices2[] = {
+            // note that we start from 0!
+            3, 2, 0, // first Triangle
+            0, 2, 1  // second Triangle
     };
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
     //Done generating
@@ -562,31 +517,51 @@ int vuv_render_create_shader_data(vuv_render_data *render) {
 
     GLenum erre = glGetError();
     if (erre != GL_NO_ERROR) {
-        printf("error %s", erre);
+        printf("error %u", erre);
     }
     // remember to close very important or other attributes made by others is overwritting it
     glBindVertexArray(0);
 
-    begin_batch(render);
     render->gl_VA = VAO;
     render->gl_VB = VBO;
     render->gl_EB = EBO;
 
+    begin_batch(render);
     //render
     return VUV_OK;
 }
+
 void vuv_render_end_batch(vuv_render_data *render) {
     end_batch(render);
 }
+
 void vuv_render_begin_batch(vuv_render_data *render) {
     begin_batch(render);
 }
+
 void vuv_render_flush_batch(vuv_render_data *render) {
     flush(render);
 }
 
-void vuv_render_draw_quad(vuv_render_data *render, vec2 position, vec2 size) {
+void vuv_render_end_begin_flush_batch(vuv_render_data *render) {
+    end_batch(render);
+    begin_batch(render);
+    flush(render);
+}
+
+
+void vuv_render_draw_quad(vuv_render_data *render, vec2 position, vec2 size, vec4 color) {
     check_maximum_render(render);
-    set_render_vertices(render, position, size);
+    set_render_vertices(render, position, size, color);
     increment_number_of_vertices(render);
 }
+
+void vuv_render_nk_draw() {
+
+    nk_sdl_render(NK_ANTI_ALIASING_ON, MAX_VERTEX_MEMORY, MAX_ELEMENT_MEMORY);
+}
+
+void vuv_render_nk_clear(vec4 color) {
+//    nk_color_fv(color, nk_rgb(28,48,62));
+}
+
