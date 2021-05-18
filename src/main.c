@@ -1,13 +1,6 @@
-#include "SDL_timer.h"
-#include "SDL_video.h"
-#include "vuv/application.h"
-#include "vuv/application_states.h"
-#include "vuv/errors.h"
-#include "vuv/input.h"
-#include "vuv/vuv.h"
-#include <SDL2/SDL.h>
 #include <stdio.h>
 
+#include "vuv/vuv.h"
 #define NK_INCLUDE_FIXED_TYPES
 #define NK_INCLUDE_STANDARD_IO
 #define NK_INCLUDE_STANDARD_VARARGS
@@ -20,6 +13,7 @@
 
 #include "vuv/nuklear.h"
 #include "vuv/nuklear_sdl_gl3.h"
+
 
 vuv_application *app;
 

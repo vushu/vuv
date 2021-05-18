@@ -1,14 +1,9 @@
 #include "vuv/application.h"
-#include "SDL.h"
-#include "SDL_timer.h"
-#include "SDL_video.h"
 #include "vuv/application_states.h"
 #include "vuv/input.h"
 #include "vuv/render.h"
 #include "vuv/window.h"
 #include <stdlib.h>
-//#include "vuv/nuklear_sdl_gles2.h"
-#include "vuv/nuklear.h"
 
 
 #define VUV_FRAME_PER_SEC 1000 / 60

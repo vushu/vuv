@@ -9,9 +9,6 @@
 #include <glad/glad.h>
 #include <stdio.h>
 #include <stdlib.h>
-//#include <vuv/nuklear_sdl_gl3.h>
-#include <vuv/nuklear.h>
-#include <vuv/nuklear_sdl_gl3.h>
 //FOR NUKLEAR
 #define MAX_VERTEX_MEMORY 512 * 1024
 #define MAX_ELEMENT_MEMORY 128 * 1024
@@ -558,7 +555,7 @@ void vuv_render_draw_quad(vuv_render_data *render, vec2 position, vec2 size, vec
 
 void vuv_render_nk_draw() {
 
-    nk_sdl_render(NK_ANTI_ALIASING_ON, MAX_VERTEX_MEMORY, MAX_ELEMENT_MEMORY);
+//    nk_sdl_render(NK_ANTI_ALIASING_ON, MAX_VERTEX_MEMORY, MAX_ELEMENT_MEMORY);
 }
 
 void vuv_render_nk_clear(vec4 color) {
