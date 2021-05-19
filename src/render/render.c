@@ -118,8 +118,8 @@ void increment_number_of_vertices(vuv_render_data *render) {
 }
 
 int read_shaders(vuv_render_data *render) {
-    render->vertex_shader_src = read_file("/home/vushu/coding/c/vuv/resources/shaders/shader.vert");
-    render->fragment_shader_src = read_file("/home/vushu/coding/c/vuv/resources/shaders/shader.frag");
+    render->vertex_shader_src = read_file("/hom/vushu/code/c/vuv/resources/shaders/shader.vert");
+    render->fragment_shader_src = read_file("/home/vushu/code/c/vuv/resources/shaders/shader.frag");
     return VUV_OK;
 }
 
@@ -337,7 +337,7 @@ int vuv_render_compile_shaders(vuv_render_data *render) {
 
     if (!success) {
         glGetShaderInfoLog(render->compiled_vertex_shader, 512, NULL, infoLog);
-        printf("COMPILE MESSAGE: %s", infoLog);
+        SDL_LogMessage(SDL_LOG_CATEGORY_ERROR, 1, "Render: failed to compile %s\n" , infoLog);
         return VUV_RENDER_SHADER_FAILED;
     }
 

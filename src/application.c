@@ -1,6 +1,7 @@
 #include "vuv/application.h"
 #include "vuv/application_states.h"
 #include "vuv/input.h"
+#include "vuv/log.h"
 #include "vuv/render.h"
 #include "vuv/window.h"
 #include <stdlib.h>
@@ -70,20 +71,27 @@ void game_loop(vuv_application* app)
 
     vuv_render_end_begin_flush_batch(app->render);
 
-    vuv_render_nk_draw();
+    /*vuv_render_nk_draw();*/
     SDL_GL_SwapWindow(app->context->sdl_window);
 }
 
 void vuv_application_run(vuv_application* app)
 {
     if (!app->game_loop_callback) {
-        SDL_Log("No gameloop callback");
+        printf("filaed adsfasdfasdfadf ...... \n");
+        /*SDL_LOG("hello");*/
+        /*SDL_LOG_ERR()*/
+        /*SDL_LogMessage(SDL_LOG_CATEGORY_ERROR,1,"No gameloop callback");*/
+        /*vuv_log(int line, const char *filename, SDL_LogPriority priority, ...)*/
         app->state = VUV_APPLICATION_STOPPED;
     }
 
     while (app->state) {
         game_loop(app);
     }
+
+    printf("filaed adsfasdfasdfadf ...... \n");
+    /*SDL_Log("Ending Vuv");*/
 
     vuv_application_destroy(app);
 }

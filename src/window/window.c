@@ -1,9 +1,6 @@
 #include "vuv/window.h"
-#include "SDL_video.h"
-#include "vuv/application.h"
 #include "vuv/errors.h"
 #include "vuv/render.h"
-#include <stdio.h>
 
 int vuv_window_create(char* title, int width, int height, vuv_application * app)
 {
