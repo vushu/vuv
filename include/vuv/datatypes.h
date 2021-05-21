@@ -37,9 +37,9 @@ typedef struct {
 } vuv_window_data;
 
 typedef struct {
-    vec3 position[3];
-    vec4 color[4];
-    vec2 texture_coord[2];
+    vec3 position;
+    vec4 color;
+    vec2 texture_coord;
     float texture_id;
     float type_id;
 } vuv_render_vertex;

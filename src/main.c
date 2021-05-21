@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <vuv/render.h>
 
 #include "vuv/vuv.h"
 
@@ -68,8 +69,14 @@ void test_nuklear(vuv_application *data) {
 
 }
 
-void callback_game_loop(void *app) {
-    test_nuklear((vuv_application *) app);
+vec2 position = { 40, 100.0f };
+vec2 size = { 200, 200 };
+vec4 color = {1, 1, 0, 1};
+void callback_game_loop(void *aspp) {
+
+//    test_nuklear((vuv_application *) app);
+    vuv_render_draw_quad(app->render, position, size, color);
+    vuv_render_end_flush_begin_batch(app->render);
 }
 
 /*
@@ -86,7 +93,8 @@ void create_nk_context(vuv_application* app) {
 
 int main(int argc, char *args[]) {
 
-    app = vuv_application_create("Vuv Game", 1920, 1080);
+//    app = vuv_application_create("Vuv Game", 1920, 1080);
+    app = vuv_application_create("Vuv Game", 1024, 768);
 
     if (vuv_application_init(app) == 1) {
         app->input->key_down = &callback_key_down;

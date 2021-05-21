@@ -9,11 +9,9 @@
 
 #define VUV_FRAME_PER_SEC 1000 / 60
 
-int vuv_application_init(vuv_application* app)
-{
+int vuv_application_init(vuv_application *app) {
     int result;
     if ((result = vuv_render_setup_sdl())) {
-        app->state = VUV_APPLICATION_RUNNING;
         result = vuv_window_create(app->window->title, app->window->width, app->window->height, app);
     } else
         free(app);
@@ -21,9 +19,8 @@ int vuv_application_init(vuv_application* app)
     return result;
 }
 
-vuv_application* vuv_application_create(char* title, int width, int height)
-{
-    vuv_application* app = malloc(sizeof(vuv_application));
+vuv_application *vuv_application_create(char *title, int width, int height) {
+    vuv_application *app = malloc(sizeof(vuv_application));
     app->window = malloc(sizeof(vuv_window_data));
     app->render = malloc(sizeof(vuv_render_data));
     app->input = malloc(sizeof(vuv_input));
@@ -33,8 +30,7 @@ vuv_application* vuv_application_create(char* title, int width, int height)
     return app;
 }
 
-void vuv_application_destroy(vuv_application* vuv_app)
-{
+void vuv_application_destroy(vuv_application *vuv_app) {
     if (vuv_app != NULL && vuv_app->context != NULL) {
 
         SDL_GL_DeleteContext(vuv_app->context->gl_context);
@@ -51,34 +47,29 @@ void vuv_application_destroy(vuv_application* vuv_app)
     }
 }
 
-void game_loop(vuv_application* app)
-{
-    SDL_Delay(VUV_FRAME_PER_SEC);
-    vuv_input_listen(app);
+void game_loop(vuv_application *app) {
 
-    vec2 position = { 10.0f, 45.0f };
-    vec2 size = { 200, 200 };
+    uint64_t start = SDL_GetPerformanceCounter();
+    vuv_input_listen(app);
 
     vuv_render_clear(app->render);
 
     app->game_loop_callback(app);
 
-    vec4 color = { 1, 1, 0, 1 };
 
-    for (int i = 0; i < 1000; i++) {
-        vuv_render_draw_quad(app->render, position, size, color);
-    }
+    Uint64 end = SDL_GetPerformanceCounter();
 
-    vuv_render_end_begin_flush_batch(app->render);
+    float dt = (end - start) / (float) SDL_GetPerformanceFrequency() * 1000.0f;
 
     /*vuv_render_nk_draw();*/
+//    printf("sdfasd%f", VUV_FRAME_PER_SEC);
+    SDL_Delay(floor(16.666f - dt));
     SDL_GL_SwapWindow(app->context->sdl_window);
 }
 
-void vuv_application_run(vuv_application* app)
-{
+void vuv_application_run(vuv_application *app) {
+    app->state = VUV_APPLICATION_RUNNING;
     if (!app->game_loop_callback) {
-        printf("filaed adsfasdfasdfadf ...... \n");
         /*SDL_LOG("hello");*/
         /*SDL_LOG_ERR()*/
         /*SDL_LogMessage(SDL_LOG_CATEGORY_ERROR,1,"No gameloop callback");*/
@@ -90,8 +81,6 @@ void vuv_application_run(vuv_application* app)
         game_loop(app);
     }
 
-    printf("filaed adsfasdfasdfadf ...... \n");
-    /*SDL_Log("Ending Vuv");*/
 
     vuv_application_destroy(app);
 }

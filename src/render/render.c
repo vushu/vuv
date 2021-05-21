@@ -1,6 +1,4 @@
 #include "vuv/render.h"
-#include "SDL_log.h"
-#include "SDL_video.h"
 #include "cglm/call/vec3.h"
 #include "cglm/types.h"
 #include "vuv/datatypes.h"
@@ -8,7 +6,7 @@
 #include "vuv/gl_utils.h"
 #include <glad/glad.h>
 #include <stdio.h>
-#include <stdlib.h>
+#include <SDL2/SDL.h>
 //FOR NUKLEAR
 #define MAX_VERTEX_MEMORY 512 * 1024
 #define MAX_ELEMENT_MEMORY 128 * 1024
@@ -34,6 +32,9 @@ void end_batch(vuv_render_data *render) {
     GLsizeiptr size = (uint8_t *) render->vertex_buffer_ptr - (uint8_t *) render->vertex_buffer;
 
     glBindBuffer(GL_ARRAY_BUFFER, render->gl_VB);
+//    vec3* pos = (vec3*) render->vertex_buffer->position;
+//    vec4* color = (vec4*) render->vertex_buffer->color;
+
 
     glBufferSubData(GL_ARRAY_BUFFER, 0, size, render->vertex_buffer);
 }
@@ -66,17 +67,13 @@ char *read_file(char *fn) {
 }
 
 void set_render_vertex(vuv_render_vertex *vertex, vec2 position, vec4 color, vec2 texture_coord) {
-    // test no texture
-    //
     vec3 pos;
     pos[0] = position[0];
     pos[1] = position[1];
     pos[2] = 0.0f;
 
-    glm_vec3_copy(pos, *vertex->position);
-
-    glm_vec4_copy(color, *vertex->color);
-    vertex++;
+    glm_vec3_copy(pos, vertex->position);
+    glm_vec4_copy(color, vertex->color);
 }
 
 void set_render_vertices(vuv_render_data *render, vec2 position, vec2 size, vec4 color) {
@@ -103,8 +100,8 @@ void set_render_vertices(vuv_render_data *render, vec2 position, vec2 size, vec4
         texture_coord[0] = x;
         texture_coord[1] = y;
 
-        pos[0] = position[0] + size[0] * x;
-        pos[1] = position[1] + size[1] * y;
+        pos[0] = position[0] + ((float) size[0]) * x;
+        pos[1] = position[1] + ((float) size[1]) * y;
 
 
         set_render_vertex(render->vertex_buffer_ptr, pos, color, texture_coord); //BR
@@ -118,7 +115,7 @@ void increment_number_of_vertices(vuv_render_data *render) {
 }
 
 int read_shaders(vuv_render_data *render) {
-    render->vertex_shader_src = read_file("/hom/vushu/code/c/vuv/resources/shaders/shader.vert");
+    render->vertex_shader_src = read_file("/home/vushu/code/c/vuv/resources/shaders/shader.vert");
     render->fragment_shader_src = read_file("/home/vushu/code/c/vuv/resources/shaders/shader.frag");
     return VUV_OK;
 }
@@ -203,10 +200,14 @@ void flush(vuv_render_data *render) {
     glBindVertexArray(0);
     glUseProgram(render->shader_program);
 
-    mat4 mvp = GLM_MAT4_IDENTITY_INIT;
-    calc_view_matrix(render);
-    glm_mat4_mul(render->camera->project_matrix, render->camera->view_matrix, mvp);
-    create_gpu_data_mat4(render->shader_program, "uMvp", mvp);
+//    mat4 mvp = GLM_MAT4_IDENTITY_INIT;
+//    calc_view_matrix(render);
+    /******* Something goes wrong when we mul matrix ****/
+//    glm_mat4_mul(render->camera->project_matrix, render->camera->view_matrix, mvp);
+//    create_gpu_data_mat4(render->shader_program, "uMvp", mvp);
+
+    // Fix for now
+    create_gpu_data_mat4(render->shader_program, "uMvp", render->camera->project_matrix);
 
     //texture bind no implemented yet
 
@@ -317,13 +318,14 @@ int vuv_render_setup_sdl() {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
     // Want double-buffering
-    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
+//    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
     /*Set the colour depth (16 bit 565). */
-    SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 5);
-    SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 6);
-    SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 5);
+//    SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 5);
+//    SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 6);
+//    SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 5);
     return VUV_OK;
 }
 
@@ -337,7 +339,7 @@ int vuv_render_compile_shaders(vuv_render_data *render) {
 
     if (!success) {
         glGetShaderInfoLog(render->compiled_vertex_shader, 512, NULL, infoLog);
-        SDL_LogMessage(SDL_LOG_CATEGORY_ERROR, 1, "Render: failed to compile %s\n" , infoLog);
+        SDL_LogMessage(SDL_LOG_CATEGORY_ERROR, 1, "Render: failed to compile %s\n", infoLog);
         return VUV_RENDER_SHADER_FAILED;
     }
 
@@ -351,7 +353,7 @@ int vuv_render_compile_shaders(vuv_render_data *render) {
     return VUV_OK;
 }
 
-int vuv_render_init(vuv_render_data *render) {
+int vuv_render_init(vuv_render_data *render, int win_width, int win_height) {
     if (!gladLoadGLLoader((GLADloadproc) SDL_GL_GetProcAddress)) {
         return VUV_GLAD_FAILED;
     }
@@ -366,9 +368,10 @@ int vuv_render_init(vuv_render_data *render) {
 
     //camera stuff
     render->camera = malloc(sizeof(vuv_camera));
-    render->camera->width = 1920;
-    render->camera->height = 1080;
+    render->camera->width = win_width;
+    render->camera->height = win_height;
 
+//        SDL_GL_SetSwapInterval(1);
     glm_mat4_copy(GLM_MAT4_IDENTITY, render->camera->project_matrix);
 
     glm_ortho(0.0f, render->camera->width, render->camera->height, 0.0f, -1.0f, 100.0f, render->camera->project_matrix);
@@ -411,11 +414,7 @@ int vuv_render_create_program(vuv_render_data *render) {
 }
 
 void vuv_render_clear(vuv_render_data *render) {
-    if (render->vsync_on) {
-        SDL_GL_SetSwapInterval(1);
-    }
-
-    /*glViewport(0, 0, 1920, 1080);*/
+    glViewport(0, 0, render->camera->width, render->camera->height);
     glClearColor(render->clear_color.r, render->clear_color.g, render->clear_color.b, render->clear_color.a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
@@ -512,10 +511,10 @@ int vuv_render_create_shader_data(vuv_render_data *render) {
     //Done generating
     //Batch data
 
-    GLenum erre = glGetError();
-    if (erre != GL_NO_ERROR) {
-        printf("error %u", erre);
-    }
+//    GLenum erre = glGetError();
+//    if (erre != GL_NO_ERROR) {
+//        printf("error %u", erre);
+//    }
     // remember to close very important or other attributes made by others is overwritting it
     glBindVertexArray(0);
 
@@ -540,10 +539,10 @@ void vuv_render_flush_batch(vuv_render_data *render) {
     flush(render);
 }
 
-void vuv_render_end_begin_flush_batch(vuv_render_data *render) {
+void vuv_render_end_flush_begin_batch(vuv_render_data *render) {
     end_batch(render);
-    begin_batch(render);
     flush(render);
+    begin_batch(render);
 }
 
 
